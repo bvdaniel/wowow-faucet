@@ -2,9 +2,9 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
-import "../src/ZurfDropVesting.sol";
+import "../src/tokenDropVesting.sol";
 import "../src/CustomERC20.sol";  // Import the CustomERC20 contract you've created
-contract zurfDropVestingTest is Test {
+contract tokenDropVestingTest is Test {
     CustomERC20 token;  // Use CustomERC20 instead of ERC20
     address owner = makeAddr("owner");
     event LogTokenBalance(string message, uint256 balance);
@@ -19,7 +19,7 @@ contract zurfDropVestingTest is Test {
 
     uint128 totalRoundTokens = 5000 * 731 * 1e18 ;
 
-        uint128[] zurfTokens = [
+        uint128[] tokens = [
         totalRoundTokens/10,
         totalRoundTokens*2/10,
         totalRoundTokens*7/10
@@ -31,22 +31,22 @@ contract zurfDropVestingTest is Test {
     uint40 vestingMonths = 25;
     //uint40 vestingMonthsLargeInvestor = 48;
 
-    zurfDropVesting zurfVest;
+    tokenDropVesting tokenVest;
 
     function setUp() public {
         // Deploy the CustomERC20 token contract
         token = new CustomERC20();
         // Transfer totalRoundTokens to the vesting contract
       
-        // Deploy ZurfRound0Vesting contract
-        zurfVest = new zurfDropVesting(address(token));
-        token.transfer(address(zurfVest), totalRoundTokens);
+        // Deploy tokenDropVesting contract
+        tokenVest = new tokenDropVesting(address(token));
+        token.transfer(address(tokenVest), totalRoundTokens);
 
         // Whitelist the trigger (replace with the actual function call)
-        zurfVest.whitelistZurfTrigger(triggerAddress);
-        assert(zurfVest.s_triggerWhitelisted(triggerAddress));
+        tokenVest.whitelistTrigger(triggerAddress);
+        assert(tokenVest.s_triggerWhitelisted(triggerAddress));
       
-        assert(token.balanceOf(address(zurfVest)) == totalRoundTokens);
+        assert(token.balanceOf(address(tokenVest)) == totalRoundTokens);
 
        
     }
@@ -57,13 +57,13 @@ contract zurfDropVestingTest is Test {
         vm.prank(triggerAddress);
         // Store the current number of events emitted
         // uint256 initialEventCount = vm.eventsCount();
-        zurfVest.loadVestingData(investors, zurfTokens, cliffMonths, vestingMonths, false);
+        tokenVest.loadVestingData(investors, tokens, cliffMonths, vestingMonths, false);
         // Calculate the number of events emitted after the function call
         for (uint256 i = 0; i < investors.length; i++) {
-        // Get the investor's allocation struct from the ZurfRound0Vesting contract
-        allocatedTokens = zurfVest.getMyAllocation(investors[i]);
-        // Assert that the allocatedTokens match the corresponding zurfTokens in the array
-        assert(allocatedTokens == zurfTokens[i]);
+        // Get the investor's allocation struct from the tokenDropVesting contract
+        allocatedTokens = tokenVest.getMyAllocation(investors[i]);
+        // Assert that the allocatedTokens match the corresponding tokens in the array
+        assert(allocatedTokens == tokens[i]);
         }
     }
     function testdropVest() public {
@@ -71,70 +71,70 @@ contract zurfDropVestingTest is Test {
         vm.prank(triggerAddress);
         // Store the current number of events emitted
         // uint256 initialEventCount = vm.eventsCount();
-        zurfVest.loadVestingData(investors, zurfTokens, cliffMonths, vestingMonths, true);
+        tokenVest.loadVestingData(investors, tokens, cliffMonths, vestingMonths, true);
         // Calculate the number of events emitted after the function call
         for (uint256 i = 0; i < investors.length; i++) {
-        // Get the investor's allocation struct from the ZurfRound0Vesting contract
-        allocatedTokens = zurfVest.getMyAllocation(investors[i]);
-        // Assert that the allocatedTokens match the corresponding zurfTokens in the array
-        assert(allocatedTokens == zurfTokens[i]);
+        // Get the investor's allocation struct from the tokenDropVesting contract
+        allocatedTokens = tokenVest.getMyAllocation(investors[i]);
+        // Assert that the allocatedTokens match the corresponding tokens in the array
+        assert(allocatedTokens == tokens[i]);
         }
         emit log_uint(block.timestamp);
         vm.prank(triggerAddress);
-        zurfVest.dropTokens();
+        tokenVest.dropTokens();
 
     // Check if the tokens are dropped
     for (uint256 i = 0; i < investors.length; i++) {
-        // Get the investor's allocation struct from the ZurfRound0Vesting contract
-        allocatedTokens = zurfVest.getMyAllocation(investors[i]);
-        // Assert that the allocatedTokens match the corresponding zurfTokens in the array
-        assert(allocatedTokens == zurfTokens[i]);
+        // Get the investor's allocation struct from the tokenDropVesting contract
+        allocatedTokens = tokenVest.getMyAllocation(investors[i]);
+        // Assert that the allocatedTokens match the corresponding tokens in the array
+        assert(allocatedTokens == tokens[i]);
         // _claimableAmount is 0
         // claimedTokens is allocation/vestingMonths
 
-        (,uint128 _claimableAmount,,,) = zurfVest.allocations(investors[i]);
+        (,uint128 _claimableAmount,,,) = tokenVest.allocations(investors[i]);
         assert(_claimableAmount == 0);
-        (,,uint128 claimedTokens,,) = zurfVest.allocations(investors[i]);
-        assert(claimedTokens == zurfTokens[i]/vestingMonths);
+        (,,uint128 claimedTokens,,) = tokenVest.allocations(investors[i]);
+        assert(claimedTokens == tokens[i]/vestingMonths);
         uint256 investorBalance = token.balanceOf(investors[i]);
         // Assert that the investor's balance has increased by the allocatedTokens amount
-        assert(investorBalance == zurfTokens[i]/vestingMonths);
+        assert(investorBalance == tokens[i]/vestingMonths);
     }
     // Advance 31 days dont drop, check claimable amount is equal to one vesting
     vm.warp(31 days);
         // Check if the tokens are dropped
     for (uint256 i = 0; i < investors.length; i++) {
-        // Get the investor's allocation struct from the ZurfRound0Vesting contract
-        allocatedTokens = zurfVest.getMyAllocation(investors[i]);
-        // Assert that the allocatedTokens match the corresponding zurfTokens in the array
-        assert(allocatedTokens == zurfTokens[i]);
+        // Get the investor's allocation struct from the tokenDropVesting contract
+        allocatedTokens = tokenVest.getMyAllocation(investors[i]);
+        // Assert that the allocatedTokens match the corresponding tokens in the array
+        assert(allocatedTokens == tokens[i]);
         // _claimableAmount is allocation/vestingMonths
         // claimedTokens is allocation/vestingMonths
-        uint128 vestedAmount = zurfVest.calculateVestedAmount(investors[i]);
-        assert(vestedAmount == 2*zurfTokens[i]/vestingMonths);
-        (,,uint128 claimedTokens,,) = zurfVest.allocations(investors[i]);
-        assert(claimedTokens == zurfTokens[i]/vestingMonths);
+        uint128 vestedAmount = tokenVest.calculateVestedAmount(investors[i]);
+        assert(vestedAmount == 2*tokens[i]/vestingMonths);
+        (,,uint128 claimedTokens,,) = tokenVest.allocations(investors[i]);
+        assert(claimedTokens == tokens[i]/vestingMonths);
         uint256 investorBalance = token.balanceOf(investors[i]);
         // Assert that the investor's balance remains the same 
-        assert(investorBalance == zurfTokens[i]/vestingMonths);
+        assert(investorBalance == tokens[i]/vestingMonths);
     }
 
     vm.prank(triggerAddress);
-    zurfVest.dropTokens();
+    tokenVest.dropTokens();
       for (uint256 i = 0; i < investors.length; i++) {
-        // Get the investor's allocation struct from the ZurfRound0Vesting contract
-        allocatedTokens = zurfVest.getMyAllocation(investors[i]);
-        // Assert that the allocatedTokens match the corresponding zurfTokens in the array
-        assert(allocatedTokens == zurfTokens[i]);
+        // Get the investor's allocation struct from the tokenDropVesting contract
+        allocatedTokens = tokenVest.getMyAllocation(investors[i]);
+        // Assert that the allocatedTokens match the corresponding tokens in the array
+        assert(allocatedTokens == tokens[i]);
         // _claimableAmount is 2*allocation/vestingMonths
         // claimedTokens is 2*allocation/vestingMonths
-        uint128 vestedAmount = zurfVest.calculateVestedAmount(investors[i]);
-        assert(vestedAmount == 2*zurfTokens[i]/vestingMonths);
-        (,,uint128 claimedTokens,,) = zurfVest.allocations(investors[i]);
-        assert(claimedTokens == 2*zurfTokens[i]/vestingMonths);
+        uint128 vestedAmount = tokenVest.calculateVestedAmount(investors[i]);
+        assert(vestedAmount == 2*tokens[i]/vestingMonths);
+        (,,uint128 claimedTokens,,) = tokenVest.allocations(investors[i]);
+        assert(claimedTokens == 2*tokens[i]/vestingMonths);
         uint256 investorBalance = token.balanceOf(investors[i]);
         // Assert that the investor's balance remains the same 
-        assert(investorBalance == 2*zurfTokens[i]/vestingMonths);
+        assert(investorBalance == 2*tokens[i]/vestingMonths);
     }
     }
     // Helper function to convert uint to string

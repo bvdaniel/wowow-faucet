@@ -6,4 +6,4 @@ forge create --rpc-url https://polygon-mainnet.g.alchemy.com/v2/3FBkWF2fDhkZkZLp
     --private-key "$PRIVATE_KEY" \
     --etherscan-api-key "$POLYGONSCAN_API_KEY" \
     --verify \
-    src/zurfDropVesting.sol:zurfDropVesting  --legacy
+    src/tokenDropVesting.sol:tokenDropVesting  --legacy

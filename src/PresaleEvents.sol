@@ -13,13 +13,13 @@ library PresaleEvents {
     event RoundFinished();
 
     /**
-     * @dev Emitted when vested Zurf tokens are distributed to investors during a drop event.
-     * @param allocation The total amount of Zurf tokens dropped to investors during this execution.
+     * @dev Emitted when vested tokens are distributed to investors during a drop event.
+     * @param allocation The total amount of tokens dropped to investors during this execution.
      */
-    event zurfDropVesting__DropExecuted(
+    event tokenDropVesting__DropExecuted(
         uint256 allocation
     );
 
-    event zurfDropVesting__dataLoaded(uint256 investorCount);
+    event tokenDropVesting__dataLoaded(uint256 investorCount);
 
 }

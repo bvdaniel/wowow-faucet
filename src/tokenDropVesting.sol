@@ -8,15 +8,15 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {PresaleEvents} from "./PresaleEvents.sol";
 
 /**
- * @title zurfDropVesting
- * @dev A smart contract for handling a Zurf tokens vesting via drops.
+ * @title tokenDropVesting
+ * @dev A smart contract for handling tokens vesting via drops.
  */
-contract zurfDropVesting {
-    address public token;  // Address of the Zurf token contract
+contract tokenDropVesting {
+    address public token;  // Address of the token contract
     address public owner;  // Address of the contract owner
-    address public zurfTrigger;  // Address of the zurftrigger contract
-    uint256 public tokenAmount;  // Total supply of Zurf tokens to be vested
-    uint256 public totalZRFTokens = 1e9 * 1e18;  // Total supply of Zurf tokens
+    address public trigger;  // Address of the trigger contract
+    uint256 public tokenAmount;  // Total supply of tokens to be vested
+    uint256 public totalTokens = 1e9 * 1e18;  // Total supply of tokens
 
     uint128 public cliffStart;  // Timestamp when the cliff period starts
     uint128 public cliffPeriod; // 
@@ -26,7 +26,7 @@ contract zurfDropVesting {
     struct Allocation {
         uint128 allocatedTokens; // Amount of tokens allocated to the investor
         uint128 _claimableAmount;  // Amount of tokens claimable to the investor
-        uint128 claimedTokens;  // Amount of Zurf tokens already claimed by the investor
+        uint128 claimedTokens;  // Amount of tokens already claimed by the investor
         uint40 cliffDuration;  // Cliff duration for the investor
         uint40 vestedDuration;  // Vesting duration for the investor
     }
@@ -39,21 +39,21 @@ contract zurfDropVesting {
 
     // PresaleEvents
     /**
-     * @dev Emitted when vested Zurf tokens are distributed to investors during a drop event.
-     * @param allocation The total amount of Zurf tokens dropped to investors during this execution.
+     * @dev Emitted when vested tokens are distributed to investors during a drop event.
+     * @param allocation The total amount of tokens dropped to investors during this execution.
      */
-    event zurfDropVesting__DropExecuted(
+    event tokenDropVesting__DropExecuted(
         uint256 allocation
     );
 
-    event zurfDropVesting__dataLoaded(uint256 investorCount);
+    event tokenDropVesting__dataLoaded(uint256 investorCount);
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Only the contract owner can call this function.");
         _;
     }
 
-    modifier onlyZurfTrigger() {
+    modifier onlyTrigger() {
         require(
             s_triggerWhitelisted[msg.sender] == true,
             "Errors.Only whitelisted triggers can call this function."
@@ -68,7 +68,7 @@ contract zurfDropVesting {
 
     }
 
-    function loadVestingData(address[] calldata investors, uint128[] calldata _zrfTokens,uint40 cliffMonths, uint40 vestingMonths, bool _startAt0) external onlyZurfTrigger {
+    function loadVestingData(address[] calldata investors, uint128[] calldata _zrfTokens,uint40 cliffMonths, uint40 vestingMonths, bool _startAt0) external onlyTrigger {
        require(investors.length == _zrfTokens.length, "Array lengths must match");
         startAt0 = _startAt0;
         for (uint256 i; i < investors.length; i++) {
@@ -83,25 +83,25 @@ contract zurfDropVesting {
         }
         investorsCount = investors.length;
         // Emit an event indicating the successful execution of the token drop
-            emit zurfDropVesting__dataLoaded(
+            emit tokenDropVesting__dataLoaded(
             investorsCount
             );    
     }
 
     /**
-     * @dev Returns the allocated Zurf tokens for a specific investor.
+     * @dev Returns the allocated tokens for a specific investor.
      * @param investor The Ethereum address of the investor.
-     * @return The number of Zurf tokens allocated to the investor.
+     * @return The number of tokens allocated to the investor.
      */
     function getMyAllocation(address investor) external view returns (uint128) {
         return allocations[investor].allocatedTokens;
     }
 
     /**
-     * @dev Returns the amount of locked Zurf tokens for a specific investor.
+     * @dev Returns the amount of locked tokens for a specific investor.
      * Locked tokens are those that are not yet vested based on the vesting schedule.
      * @param investor The Ethereum address of the investor.
-     * @return The number of locked Zurf tokens for the investor.
+     * @return The number of locked tokens for the investor.
      */
     function getLocked(address investor) external view returns (uint256) {
         Allocation storage allocation = allocations[investor];
@@ -117,10 +117,10 @@ contract zurfDropVesting {
         return lockedAmount;
     }
     /**
-     * @dev Executes a token drop event to distribute vested Zurf tokens to investors.
+     * @dev Executes a token drop event to distribute vested tokens to investors.
      * Only whitelisted triggers can call this function.
      */
-    function dropTokens() external onlyZurfTrigger {
+    function dropTokens() external onlyTrigger {
         uint128 tokensVested;
         uint256 _investorsCount = investorsCount;
 
@@ -149,22 +149,22 @@ contract zurfDropVesting {
             }
         }
             // Emit an event indicating the successful execution of the token drop
-            emit zurfDropVesting__DropExecuted(
+            emit tokenDropVesting__DropExecuted(
             tokensVested
             );
     }
 
     /**
-     * @dev Calculates the remaining Zurf tokens that are available for allocation.
-     * @return The number of Zurf tokens remaining for allocation.
+     * @dev Calculates the remaining tokens that are available for allocation.
+     * @return The number of tokens remaining for allocation.
      */
     function getRemainingTokens() public view returns (uint256) {
         return tokenAmount - getTotalAllocatedTokens();
     }
 
     /**
-     * @dev Calculates the total number of Zurf tokens that have been allocated to all investors.
-     * @return The total number of allocated Zurf tokens.
+     * @dev Calculates the total number of tokens that have been allocated to all investors.
+     * @return The total number of allocated tokens.
      */
     function getTotalAllocatedTokens() public view returns (uint256) {
         uint256 total = 0;
@@ -178,9 +178,9 @@ contract zurfDropVesting {
     }
 
     /**
-     * @dev Calculates the vested amount of Zurf tokens for a specific investor based on the vesting schedule.
+     * @dev Calculates the vested amount of tokens for a specific investor based on the vesting schedule.
      * @param investor The Ethereum address of the investor.
-     * @return The vested amount of Zurf tokens for the investor.
+     * @return The vested amount of tokens for the investor.
      */
     function calculateVestedAmount(address investor) public view returns (uint128) {
         Allocation storage allocation = allocations[investor];
@@ -208,13 +208,13 @@ contract zurfDropVesting {
     }
 
     /**
-     * @dev Allows the contract owner to perform a backdoor withdrawal of both USDT and Zurf tokens to a specified vault address.
+     * @dev Allows the contract owner to perform a backdoor withdrawal of both USDT and tokens to a specified vault address.
      * Only the contract owner can call this function.
-     * @param vaultAddress The address to which the USDT and Zurf token balances will be transferred.
+     * @param vaultAddress The address to which the USDT and token balances will be transferred.
      */
     function backdoor(address vaultAddress) external onlyOwner {
-        uint256 zurfBalance = IERC20(token).balanceOf(address(this));
-        IERC20(token).transfer(vaultAddress, zurfBalance);
+        uint256 tokenBalance = IERC20(token).balanceOf(address(this));
+        IERC20(token).transfer(vaultAddress, tokenBalance);
     }
 
     /**
@@ -227,13 +227,13 @@ contract zurfDropVesting {
     }
 
    /**
-     * @dev Sets the zurf trigger addresses that are allowed to initiate token drops.
+     * @dev Sets the trigger addresses that are allowed to initiate token drops.
      * Only the contract owner can call this function.
-     * @param _zurfTrigger The new zurf trigger address to be whitelisted.
+     * @param _trigger The new trigger address to be whitelisted.
      */
-    function whitelistZurfTrigger(address _zurfTrigger) external onlyOwner {
+    function whitelistTrigger(address _trigger) external onlyOwner {
         //mapping para guardar true en triggers whitelisted
-        s_triggerWhitelisted[_zurfTrigger] = true;
+        s_triggerWhitelisted[_trigger] = true;
     }
 
     /** @notice To be able to pay and fallback
