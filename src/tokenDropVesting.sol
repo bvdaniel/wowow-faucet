@@ -72,7 +72,7 @@ contract tokenDropVesting {
        require(investors.length == _zrfTokens.length, "Array lengths must match");
         startAt0 = _startAt0;
         for (uint256 i; i < investors.length; i++) {
-            allocations[investors[i]].allocatedTokens = _zrfTokens[i];
+            allocations[investors[i]].allocatedTokens += _zrfTokens[i];
             allocations[investors[i]].cliffDuration = cliffMonths;
             investorIndex[i] = investors[i];
             allocations[investors[i]].vestedDuration = vestingMonths;    

@@ -7,13 +7,13 @@ import "../src/CustomERC20.sol";  // Import the CustomERC20 contract you've crea
 contract tokenPreSaleAndDropVestingTest is Test {
     uint256 polygonFork;
     string MAINNET_RPC_URL = vm.envString("POLYGON_MAINNET_RPC_URL");
-    CustomERC20 token;  // Use CustomERC20 instead of ERC20
+    CustomERC20 token;  // Use CustomERC20 instead of ERC20 for company currency
+    CustomERC20 usdtToken;  // Use CustomERC20 instead of ERC20 for payment currency
+
     address owner = makeAddr("owner");
     event LogTokenBalance(string message, uint256 balance);
     event LogValue(string message, uint256 value);
     event LogVestingDuration(string message, uint256 vestingDuration);
-
-
 
     address[] investors = [
         0x505e71695E9bc45943c58adEC1650577BcA68fD9,
@@ -22,19 +22,15 @@ contract tokenPreSaleAndDropVestingTest is Test {
     ];
 
     address triggerAddress = 0x092E67E9dbc47101760143f95056569CB0b3324f;
-    address currency = 0xc2132D05D31c914a87C6611C10748AEb04B58e8F;
-
-
-    uint40 cliffMonths = 3;
-    uint40 vestingMonths = 24;
-    uint40 largeInvestorVestedDuration = 48;
-    uint40 regularInvestorVestedDuration = 24;
+    uint256 cliffMonths = 3;
+    uint256 largeInvestorVestedDuration = 48;
+    uint256 regularInvestorVestedDuration = 24;
     uint256 investorThreshold = 5; // in percentage
     uint256 minPurchase = 100*1E6; // 100 USDT
+    uint256 initialFork = 49_257_792;
     uint256 public TOKEN_RATE = 666;  // Tokens per buying currency
     uint256 public ROUND_SUPPLY = 100000 * TOKEN_RATE * 1E18;  // Round supply of tokens for the presale
     uint256 public TOTAL_SUPPLY = 100000 * TOKEN_RATE * 1E18; // Total supply of issued tokens 
-
 
     uint256[] tokens = [
         investorThreshold*TOTAL_SUPPLY/(1E12)/TOKEN_RATE/100-1,
@@ -44,37 +40,53 @@ contract tokenPreSaleAndDropVestingTest is Test {
     tokenPreSaleAndDropVesting tokenPreSaleAndDrop;
 
     function setUp() public {
-        polygonFork = vm.createFork(MAINNET_RPC_URL);
-        vm.selectFork(polygonFork);
-        vm.rollFork(49257792);
+        //polygonFork = vm.createFork(MAINNET_RPC_URL);
+        //vm.selectFork(polygonFork);
+        // Days to go back
+        uint256 beforeTimestamp = calculateTimestampBefore(initialFork,5);
+        // Calculate the new timestamp after advancing N days
+        //vm.rollFork(beforeTimestamp);
         // Deploy the CustomERC20 token contract
         token = new CustomERC20();
+        usdtToken = new CustomERC20();
         // Transfer totalRoundTokens to the vesting contract
         // Deploy tokenDropVesting contract
         tokenPreSaleAndDrop = new tokenPreSaleAndDropVesting(
             address(token),
-            currency,
+            address(usdtToken),
             ROUND_SUPPLY,
             TOTAL_SUPPLY,
             TOKEN_RATE,
-            vestingMonths,
             largeInvestorVestedDuration,
             regularInvestorVestedDuration,
             investorThreshold);
 
         token.transfer(address(tokenPreSaleAndDrop), ROUND_SUPPLY);
+        usdtToken.transfer(address(investors[0]), tokens[0]);
+        usdtToken.transfer(address(investors[1]), tokens[1]);
+        usdtToken.transfer(address(investors[2]), tokens[2]);
+
 
         // Whitelist the trigger (replace with the actual function call)
         tokenPreSaleAndDrop.whitelistTrigger(triggerAddress);
+        tokenPreSaleAndDrop.setMinPurchase(minPurchase);
         assert(tokenPreSaleAndDrop.s_triggerWhitelisted(triggerAddress));
         assert(token.balanceOf(address(tokenPreSaleAndDrop)) == ROUND_SUPPLY);
     }
 
-    // Test loading data into the contract
-      // Test loading data into the contract
+    function calculateTimestampBefore(uint256 initialTimestamp, uint256 monthsAgo) internal pure returns (uint256) {
+    // Calculate the number of seconds in 5 months
+    uint256 secondsAgo = monthsAgo * 30 days; // 1 day = 86400 seconds
+
+    // Calculate the new timestamp by subtracting the seconds in 5 months
+    return initialTimestamp - secondsAgo;
+}
+
+
+    // Test buying allocation
     function testBuyAllocation() public {
       uint256 allocatedTokens;
-        IERC20 _currency = IERC20(currency);
+        IERC20 _currency = IERC20(address(usdtToken));
         IERC20 Token = IERC20(token);
 
         uint256 whaleCurrencyBalance = _currency.balanceOf(investors[0]);
@@ -89,7 +101,7 @@ contract tokenPreSaleAndDropVestingTest is Test {
         // Store the current number of events emitted
         vm.prank(investors[0]);
         tokenPreSaleAndDrop.buyAllocation(tokens[0]);
-        // Calculate the number of events emitted after the function call
+        // Get allocated tokens
         allocatedTokens = tokenPreSaleAndDrop.getMyAllocation(investors[0]);
         // Assert that the allocatedTokens match the corresponding tokens in the array
         assert(allocatedTokens == tokens[0]*TOKEN_RATE*1e12);
@@ -98,41 +110,102 @@ contract tokenPreSaleAndDropVestingTest is Test {
         assert(whaleCurrencyBalanceAfter == whaleCurrencyBalance - tokens[0]);
 
         (,,,uint256 vestedDuration) = tokenPreSaleAndDrop.allocations(investors[0]);
-        emit LogVestingDuration("Investor Vesting Duration", vestedDuration);
-        emit LogValue("Token Threshold", investorThreshold /100 *TOTAL_SUPPLY);
-        emit LogValue("Token Threshold", investorThreshold *TOTAL_SUPPLY /100);
-
 
         // Check if regular investor, should have a regularInvestorVestedDuration
         if (allocatedTokens < investorThreshold * TOTAL_SUPPLY /100){
             assert(vestedDuration ==regularInvestorVestedDuration );
         } else assert(vestedDuration == largeInvestorVestedDuration );
 
-        
+
+
         /* This is for drop
         uint256 whaleTokenBalanceAfter = Token.balanceOf(investors[0]);
-        assert(whaleTokenBalanceAfter == whaleTokenBalance + allocatedTokens);
-        */
+        assert(whaleTokenBalanceAfter == whaleTokenBalance + allocatedTokens);*/
+        
     }
-    /*
-    function testdropVest() public {
+    
+    function testDropTokensUnsetCliff() public {
         uint128 allocatedTokens;
+        //buy allocation
+        testBuyAllocation();
         vm.prank(triggerAddress);
-        // Store the current number of events emitted
-        // uint256 initialEventCount = vm.eventsCount();
-        tokenPreSaleAndDrop.loadVestingData(investors, tokens, cliffMonths, vestingMonths, true);
-        // Calculate the number of events emitted after the function call
-        for (uint256 i = 0; i < investors.length; i++) {
-        // Get the investor's allocation struct from the tokenDropVesting contract
-        allocatedTokens = tokenPreSaleAndDrop.getMyAllocation(investors[i]);
-        // Assert that the allocatedTokens match the corresponding tokens in the array
-        assert(allocatedTokens == tokens[i]);
-        }
-        emit log_uint(block.timestamp);
+        vm.expectRevert("Cliff not set yet");
+        tokenPreSaleAndDrop.dropTokens();
+        //Should fail if the cliff is not set yet
+
+    }
+
+    function testDropTokensSetCliff() public {
+        IERC20 Token = IERC20(token);
+        //buy allocation
+        testBuyAllocation();
+        uint256 investorBalanceBefore = Token.balanceOf(investors[0]);
+
+        //vm.prank(triggerAddress);
+        tokenPreSaleAndDrop.setCliffEnd(0);
         vm.prank(triggerAddress);
         tokenPreSaleAndDrop.dropTokens();
+        //Should drop no tokens
+        (,,uint256 claimedTokens,) = tokenPreSaleAndDrop.allocations(investors[0]);
+        assert(claimedTokens == 0);
+        //Investor balance should not change
+        uint256 investorBalanceAfter = Token.balanceOf(investors[0]);
+        // Assert that the investor's balance has increased by the allocatedTokens amount
+        assert(investorBalanceAfter == investorBalanceBefore);
 
-    // Check if the tokens are dropped
+        uint256 initialWarp = 31 days;
+        // Roll the fork to the new timestamp
+        emit LogValue("Initial block.timestamp: ", block.timestamp);
+        vm.warp(initialWarp);
+        emit LogValue("After warp block.timestamp: ", block.timestamp);
+
+        
+        uint256 vestedTokens = tokenPreSaleAndDrop.calculateVestedAmount(investors[0]);
+        emit LogValue("vestedTokens", vestedTokens);
+
+        (,uint256 allocatedTokens,,) = tokenPreSaleAndDrop.allocations(investors[0]);
+        assert(allocatedTokens == tokens[0]*TOKEN_RATE*1e12);
+
+        assert(vestedTokens == tokens[0]*TOKEN_RATE*1e12/regularInvestorVestedDuration);
+
+        //Check 2 months
+        vm.warp(initialWarp*2);
+        emit LogValue("After 2nd warp block.timestamp: ", block.timestamp);
+        vm.prank(triggerAddress);
+        tokenPreSaleAndDrop.dropTokens();
+   
+        vestedTokens = tokenPreSaleAndDrop.calculateVestedAmount(investors[0]);
+        emit LogValue("vestedTokens", vestedTokens);
+
+        assert(vestedTokens == tokens[0]*TOKEN_RATE*1e12/regularInvestorVestedDuration*2);
+
+        //Investor balance should change
+        investorBalanceAfter = Token.balanceOf(investors[0]);
+        // Assert that the investor's balance has increased by the allocatedTokens amount
+        assert(investorBalanceAfter == vestedTokens);
+
+        //Final drop
+        vm.warp(initialWarp*regularInvestorVestedDuration);
+        emit LogValue("After final warp block.timestamp: ", block.timestamp);
+        vm.prank(triggerAddress);
+        tokenPreSaleAndDrop.dropTokens();
+   
+        vestedTokens = tokenPreSaleAndDrop.calculateVestedAmount(investors[0]);
+        emit LogValue("vestedTokens", vestedTokens);
+
+        assert(vestedTokens == tokens[0]*TOKEN_RATE*1e12);
+        //Investor balance should change
+        investorBalanceAfter = Token.balanceOf(investors[0]);
+        // Assert that the investor's balance has increased by the allocatedTokens amount
+        assert(investorBalanceAfter == vestedTokens);
+
+    }
+        // Function to calculate the timestamp after advancing N days
+    function calculateTimestamp(uint256 initialTimestamp, uint256 daysToAdvance) internal pure returns (uint256) {
+        return initialTimestamp + daysToAdvance * 1 days; // 1 day = 86400 seconds
+    }
+
+    /* Check if the tokens are dropped
     for (uint256 i = 0; i < investors.length; i++) {
         // Get the investor's allocation struct from the tokenDropVesting contract
         allocatedTokens = tokenPreSaleAndDrop.getMyAllocation(investors[i]);

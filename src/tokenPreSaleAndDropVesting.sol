@@ -12,7 +12,6 @@ contract tokenPreSaleAndDropVesting {
     address public vaultAddress; // Address of the vault
     uint256 public minPurchase; // Minimum purchase in buying currency
     bool public cliffSet; // True if the cliff end is set
-    uint256 public vestingMonths; // Months of vesting, equal to amount of drops
     uint256 public largeInvestorVestedDuration; // Vesting duration in months for large investors
     uint256 public regularInvestorVestedDuration; // Vesting duration in months for normal investors
     uint256 public investorThreshold; // Percentage of token purchase over you are considered a large investor
@@ -54,7 +53,6 @@ contract tokenPreSaleAndDropVesting {
     uint256 round_supply,
     uint256 total_supply,
     uint256 rate,
-    uint256 _vestingMonths,
     uint256 _largeInvestorVestedDuration,
     uint256 _regularInvestorVestedDuration,
     uint256 _investorTreshold) {
@@ -64,7 +62,6 @@ contract tokenPreSaleAndDropVesting {
         roundSupply = round_supply;
         totalSupply = total_supply;
         tokenRate = rate;
-        vestingMonths = _vestingMonths;
         largeInvestorVestedDuration = _largeInvestorVestedDuration;
         regularInvestorVestedDuration = _regularInvestorVestedDuration;
         investorThreshold = _investorTreshold;
@@ -116,7 +113,7 @@ contract tokenPreSaleAndDropVesting {
     }
 
     function dropTokens() external onlyTrigger {
-        require(cliffSet);
+        require(cliffSet, "Cliff not set yet");
         for (uint256 i = 1; i <= investorsCount; i++) {
             address investor = investorIndex[i];
             Allocation storage allocation = allocations[investor];
