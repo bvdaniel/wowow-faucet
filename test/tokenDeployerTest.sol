@@ -3,10 +3,13 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 import "../src/tokenDeployer.sol";
+import "../src/tokenDeployerV2.sol";
 contract tokenDeployerTest is Test {
     uint256 polygonFork;
     string MAINNET_RPC_URL = vm.envString("POLYGON_MAINNET_RPC_URL");
     tokenDeployer _tokenDeployer;
+    tokenDeployerV2 _tokenDeployerV2;
+
    
     address owner = makeAddr("owner");
     string name = "newToken";
@@ -15,12 +18,22 @@ contract tokenDeployerTest is Test {
     uint256 decimals = 18;
     address _owner = 0xc59456f40E0d6fB484b0e83502f07fa7B9A75f37;
 
+    //@Events
+    event LogTokenBalance(string message, uint256 balance);
+    event LogValue(string message, uint256 value);
+    event LogVestingDuration(string message, uint256 vestingDuration);
+
     function setUp() public {
         polygonFork = vm.createFork(MAINNET_RPC_URL);
         vm.selectFork(polygonFork);
         vm.rollFork(49257792);
         // Deploy tokenSale contract
         _tokenDeployer = new tokenDeployer(address(_owner), name, symbol, amount, decimals);
+        _tokenDeployerV2 = new tokenDeployerV2(address(_owner), name, symbol, amount, decimals);
+   }
+
+    function testSettings() public {
+    assertEq(_tokenDeployerV2.name(), name, "name not set");
    }
 
     function testOwnership() public{
@@ -30,8 +43,24 @@ contract tokenDeployerTest is Test {
         address tokenAddress = address(_tokenDeployer);
         // check balance of the deployed ERC20 token
         assertEq(ERC20(tokenAddress).balanceOf(_owner), amount * 10**decimals, "Incorrect initial balance");
+        emit LogTokenBalance("Owner tokenBalance: ", ERC20(tokenAddress).balanceOf(_owner));
         // check ownership of owner
         assertEq(address(_tokenDeployer.owner()), _owner, "Incorrect owner");
+   
+    }
+
+    function testMint() public{
+        // check balance of owner
+
+        // Get the deployed ERC20 token address
+        address tokenAddress = address(_tokenDeployerV2);
+        // Try to mint newMint amount 
+        uint256 newMint = 2 * 10**decimals;
+        vm.prank(_owner);
+        _tokenDeployerV2.mint(_owner, newMint);
+
+        assertEq(ERC20(tokenAddress).balanceOf(_owner),newMint +amount * 10**decimals, "Incorrect new balance");
+        emit LogTokenBalance("Owner tokenBalance: ", ERC20(tokenAddress).balanceOf(_owner));
    
     }
 
