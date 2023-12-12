@@ -17,6 +17,7 @@ contract tokenDeployerTest is Test {
     uint256 amount = 10000;
     uint256 decimals = 18;
     address _owner = 0xc59456f40E0d6fB484b0e83502f07fa7B9A75f37;
+    address _newOwner = 0xC2628eDdDB676c4cAF68aAD55d2191F6c9668624;
 
     //@Events
     event LogTokenBalance(string message, uint256 balance);
@@ -62,6 +63,19 @@ contract tokenDeployerTest is Test {
         assertEq(ERC20(tokenAddress).balanceOf(_owner),newMint +amount * 10**decimals, "Incorrect new balance");
         emit LogTokenBalance("Owner tokenBalance: ", ERC20(tokenAddress).balanceOf(_owner));
    
+    }
+
+     function testTransferOwnership() public{
+        // check balance of owner
+
+        // Get the deployed ERC20 token address
+        address tokenAddress = address(_tokenDeployerV2);
+        // Try to mint newMint amount 
+        address newOwner = _newOwner;
+        vm.prank(_owner);
+        _tokenDeployerV2.transferOwnership(newOwner);
+
+        assertEq(address(_tokenDeployerV2.owner()), newOwner, "Incorrect new owner");   
     }
 
 
