@@ -2,12 +2,10 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
-import "../src/tokenDeployer.sol";
 import "../src/tokenDeployerV2.sol";
 contract tokenDeployerTest is Test {
     uint256 polygonFork;
     string MAINNET_RPC_URL = vm.envString("POLYGON_MAINNET_RPC_URL");
-    tokenDeployer _tokenDeployer;
     tokenDeployerV2 _tokenDeployerV2;
 
    
@@ -29,7 +27,7 @@ contract tokenDeployerTest is Test {
         vm.selectFork(polygonFork);
         vm.rollFork(49257792);
         // Deploy tokenSale contract
-        _tokenDeployer = new tokenDeployer(address(_owner), name, symbol, amount, decimals);
+        //_tokenDeployer = new tokenDeployer(address(_owner), name, symbol, amount, decimals);
         _tokenDeployerV2 = new tokenDeployerV2(address(_owner), name, symbol, amount, decimals);
    }
 
@@ -41,12 +39,12 @@ contract tokenDeployerTest is Test {
       // check balance of owner
 
         // Get the deployed ERC20 token address
-        address tokenAddress = address(_tokenDeployer);
+        address tokenAddress = address(_tokenDeployerV2);
         // check balance of the deployed ERC20 token
         assertEq(ERC20(tokenAddress).balanceOf(_owner), amount * 10**decimals, "Incorrect initial balance");
         emit LogTokenBalance("Owner tokenBalance: ", ERC20(tokenAddress).balanceOf(_owner));
         // check ownership of owner
-        assertEq(address(_tokenDeployer.owner()), _owner, "Incorrect owner");
+        assertEq(address(_tokenDeployerV2.owner()), _owner, "Incorrect owner");
    
     }
 
@@ -67,14 +65,10 @@ contract tokenDeployerTest is Test {
 
      function testTransferOwnership() public{
         // check balance of owner
-
-        // Get the deployed ERC20 token address
-        address tokenAddress = address(_tokenDeployerV2);
         // Try to mint newMint amount 
         address newOwner = _newOwner;
         vm.prank(_owner);
         _tokenDeployerV2.transferOwnership(newOwner);
-
         assertEq(address(_tokenDeployerV2.owner()), newOwner, "Incorrect new owner");   
     }
 
