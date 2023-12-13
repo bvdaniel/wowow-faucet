@@ -22,14 +22,14 @@ contract nftMinter is ERC721URIStorage, Ownable {
     constructor(address initialOwner) ERC721("Kritties", "KTRS") Ownable(initialOwner) {}
 
     function mintNFT(address user, uint256 _nftId)
-        public 
+        public onlyTrigger
     {
         _mint(user, nextId);
         _setTokenURI(nextId, idToTokenURI[_nftId]);
         nextId++;
     }
 
-    function registerNFT(uint256 _nftId, string memory _tokenURI) public {
+    function registerNFT(uint256 _nftId, string memory _tokenURI) public onlyOwner {
         idToTokenURI[_nftId] = _tokenURI;
     }
          /**
@@ -37,7 +37,7 @@ contract nftMinter is ERC721URIStorage, Ownable {
      * @param _trigger The new trigger address.
      */
 
-    function whitelistTrigger(address _trigger) external  {
+    function whitelistTrigger(address _trigger) external onlyOwner {
         s_triggerWhitelisted[_trigger] = true;
     }
 }
